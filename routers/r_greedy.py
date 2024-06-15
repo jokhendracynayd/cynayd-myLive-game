@@ -443,7 +443,10 @@ def checkPizzaSladWin(total_bidding,doc,exist_rc ,id):
     rc_on_port_pizza = int(totalpizza) + int(exist_rc)
     rc_on_port_slad = int(totalslad) + int(exist_rc)
     candidate_winner_port = {"Pizza": rc_on_port_pizza, "Slad": rc_on_port_slad}
-    winner = helptofindwinner(candidate_winner_port)
+    print("this is rc_on_port_pizza",rc_on_port_pizza)
+    print("this is rc_on_port_slad",rc_on_port_slad)
+    winner = helptofindwinner(candidate_winner_port,True)
+    print("this is winner",winner)
     winnerUsers = []
     if candidate_winner_port[winner] < 0:
         return False
@@ -516,9 +519,9 @@ async def winner_announcement(id: str):
                             #TODO: Here Check checkPizzaSladWin() function
                             
                             isDone = checkPizzaSladWin(total_bidding,doc,exist_rc,id)
-                            print("This is done",isDone)
+                            # print("This is done",isDone)
                             if isDone:
-                                print("👻👻👻👻👻👻👻",isDone)
+                                # print("👻👻👻👻👻👻👻",isDone)
                                 client.set("greedyRC", 0)
                                 client.set("greedyCounter", 0)
                                 return isDone

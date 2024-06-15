@@ -29,6 +29,11 @@ class UpdateSeatAmountRequest(BaseModel):
     amount: float
     seat: str
 
+
+class RechargeRequest(BaseModel):
+    amount: float
+    user_id: str
+
 async def check_active_game_and_end():
     try:
         docs = table_collection.find({"game_status": "active"})
@@ -59,6 +64,43 @@ async def walletBalance(user_id:str):
         "success":True,
         "msg":"Wallet balance"
     }
+    
+    
+# Temparary route to recharge the user wallet
+@router.post('/recharge-wallet')
+async def recharge_wallet(request: RechargeRequest):
+    # just increment the user wallet balance
+    try:
+        user_id = request.user_id
+        amount = request.amount
+        if not user_id or not amount:
+            return{
+                "success":False,
+                "msg":"Invalid data"
+            }
+        table_balance = table_balance_collection.find_one({"user_id": user_id})
+        if not table_balance:
+            return{
+                "success":False,
+                "msg":"No data found"
+            }
+        updated_balance = table_balance_collection.find_one_and_update(
+            {"_id": table_balance["_id"]},
+            {"$inc": {"user_diamond": amount}},
+            return_document=ReturnDocument.AFTER
+        )
+        return JSONResponse(status_code=200, content={
+            "success": True,
+            "msg": "Amount added successfully",
+            "data": "updated_balance"
+        })
+    except Exception as err:
+        return{
+            "success":False,
+            "msg":str(err)
+        }
+        
+
 
 @router.get("/create")
 async def create():

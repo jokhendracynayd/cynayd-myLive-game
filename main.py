@@ -39,6 +39,9 @@ async def task_to_schedule_for_greedy():
 
 
 # This is schedular for fruit game
+@app.get('/')
+async def home():
+    return {"message":"Welcome to MyLiveGame"}
 
 async def task_to_schedule():
     while True:
