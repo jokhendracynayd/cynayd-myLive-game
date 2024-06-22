@@ -17,12 +17,13 @@ def greedy_game_boat(winner:str,game_id:str):
         "WiningAmount": WiningAmount,
         }
     result=table_collection.update_one({'_id': ObjectId(game_id)}, {"$set": dataToUpdate})
+    
     if result.acknowledged:
         return {
             "success": True,
             "msg": "Winner declared",
             "winnerSeat":winner,
-            "TopUserWinner":[TopUserWinner],
+            "TopUserWinner":[{"UID":random_user_id,"amount":random_amount*5.0,"user_profile_pic":None}],
             "WiningAmount":WiningAmount,
             "data":winner
         }

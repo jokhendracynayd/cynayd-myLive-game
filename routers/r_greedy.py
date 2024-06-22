@@ -16,16 +16,11 @@ from utils.greedy_game import greedy_game_boat
 json.ENCODERS_BY_TYPE[ObjectId]=str
 router = APIRouter()
 table_collection = db['greedies']
-table_balance_collection = db["user_wallet_balances"]
 transaction_collection = db["transactions"]
+user_login_table = db["user_logins"]
 from controllers.credit_diamonds import credit_greedy_diamonds
 class UpdateSeatAmountRequest(BaseModel):
-    user_id: str
-    amount: int
-    seat: str
-
-class UpdateSeatAmountRequest(BaseModel):
-    user_id: str
+    UID: str
     amount: float
     seat: str
 
@@ -51,19 +46,22 @@ async def check_active_game_and_end():
 @router.get("/create")
 async def create():
     try:
-        teen_patti_game =  client.get("greedy_game")
-        if teen_patti_game is None:
+        greedy_game =  client.get("greedy_game")
+        if greedy_game is None:
             greedy=Greedy(seat=Seat())
             greedy_dict = greedy.dict()
             doc_id=table_collection.insert_one(greedy_dict).inserted_id
             doc=table_collection.find_one({"_id":ObjectId(doc_id)})
-            client.setex(str(doc_id), 28, str(doc)),
-            client.setex("greedy_game", 23, str(doc)),
+            client.setex(str(doc_id), 32, str(doc["_id"])),
+            client.setex("greedy_game", 28, str(doc["_id"])),
             await check_active_game_and_end()
             return {
                 "success": True,
                 "msg": "Game created",
-                "data": doc
+                "data": {
+                    "_id": doc_id,
+                    "game_last_count": doc["game_last_count"]
+                }
             }
         else:
             ttl =  client.ttl("greedy_game")
@@ -203,14 +201,15 @@ async def user_bid(game_id: str, user_id: str):
 
 
 
-@router.get('/walletBalance/{user_id}')
-async def walletBalance(user_id:str):
-    if not user_id or user_id=="null":
+@router.get('/wallet-balance/{UID}')
+async def walletBalance(UID:str):
+    if not UID or UID=="null":
         return JSONResponse(status_code=400, content={"success": False, "msg": "Invalid data"})
-    table_balance = table_balance_collection.find_one({"user_id": user_id})
+    table_balance = user_login_table.find_one({"UID": UID},{"Udiamonds":1})
+    print(table_balance)
     return JSONResponse(status_code=200, content={
         "data":{
-            "diamond":table_balance["user_diamond"]
+            "diamond":table_balance["Udiamonds"]
             },
         "success":True,
         "msg":"Wallet balance"
@@ -218,117 +217,130 @@ async def walletBalance(user_id:str):
 
 @router.put("/updateSeatAmount/{id}")
 async def update_seat_amount(id: str, request: UpdateSeatAmountRequest):
-    user_id = request.user_id
-    amount = request.amount
-    seat = request.seat
-    if not user_id or not amount or not seat:
-        return{
-            "success":False,
-            "msg":"Invalid data"
-        }
-
-    table = table_collection.find_one({"_id": ObjectId(id)})
-    if not table:
-        return JSONResponse(status_code=404, content={"success": False, "msg": "No data found"})
-
-    if table["game_status"] == "ended" or table["winnerAnnounced"] == "yes":
-        return JSONResponse(status_code=400, content={"success": False, "msg": "This game has ended, please wait"})
-
-    table_balance = table_balance_collection.find_one({"user_id": user_id})
-
-    if not table_balance:
-        return JSONResponse(status_code=404, content={"success": False, "msg": "No data found"})
-    
-    user_diamond = table_balance["user_diamond"]
-    if user_diamond < amount:
-        return JSONResponse(status_code=400, content={"success": False, "msg": "Insufficient balance"})
-    
-    update_obj = {"$push": {"users": {"user_id": user_id, "seat": seat, "amount": amount}}}
-    seat_total_amount_field = {
-        "A": "seat.A_total_amount",
-        "B": "seat.B_total_amount",
-        "C": "seat.C_total_amount",
-        "D": "seat.D_total_amount",
-        "E": "seat.E_total_amount",
-        "F": "seat.F_total_amount",
-        "G": "seat.G_total_amount",
-        "H": "seat.H_total_amount",
-    }
-    if seat in seat_total_amount_field:
-        update_obj["$inc"] = {seat_total_amount_field[seat]: amount}
-    updated_balance = table_balance_collection.find_one_and_update(
-        {"_id": table_balance["_id"]},
-        {"$inc": {"user_diamond": -amount}},
-        return_document=ReturnDocument.AFTER
-    )
-    if not updated_balance or int(updated_balance["user_diamond"]) + int(amount) != user_diamond:
-        return JSONResponse(status_code=500, content={"success": False, "msg": "Something went wrong"})
-    
-    updated_table = table_collection.find_one_and_update(
-        {"_id": ObjectId(id)},
-        update_obj,
-        return_document=ReturnDocument.AFTER
-    )
-    if updated_table:
-        transaction_id = secrets.token_hex(8)
-        transaction_data = {
-            "transaction_id": transaction_id,
-            "transaction_type": "debited",
-            "transaction_amount": amount,
-            "transaction_status": "success",
-            "transaction_date": datetime.datetime.now(),
-            "sender_type": "user",
-            "receiver_type": "game",
-            "sender_id": user_id,
-            "before_tran_balance": user_diamond,
-            "after_tran_balance": updated_balance["user_diamond"],
-            "receiver_id": id,
-            "user_wallet_type_from": "diamonds",
-            "user_wallet_type_to": "diamonds",
-            "entity_type": {
-                "type": "game",
-                "game_id": id,
-                "game_name": "greedy"
+    try:
+        UID = request.UID
+        amount = request.amount
+        seat = request.seat
+        if not UID or not amount or not seat:
+            return{
+                "success":False,
+                "msg":"Invalid data"
             }
+        table = table_collection.find_one({"_id": ObjectId(id)})
+        if not table:
+            return JSONResponse(status_code=404, content={"success": False, "msg": "No data found"})
+
+        if table["game_status"] == "ended" or table["winnerAnnounced"] == "yes":
+            return JSONResponse(status_code=400, content={"success": False, "msg": "This game has ended, please wait"})
+
+        table_balance = user_login_table.find_one({"UID": UID},{"Udiamonds":1})
+
+        if not table_balance:
+            return JSONResponse(status_code=404, content={"success": False, "msg": "No data found"})
+    
+        user_diamond = table_balance["Udiamonds"]
+        if user_diamond < amount:
+            return JSONResponse(status_code=400, content={"success": False, "msg": "Insufficient balance"})
+    
+        update_obj = {"$push": {"users": {"UID": UID, "seat": seat, "amount": amount}}}
+        seat_total_amount_field = {
+            "A": "seat.A_total_amount",
+            "B": "seat.B_total_amount",
+            "C": "seat.C_total_amount",
+            "D": "seat.D_total_amount",
+            "E": "seat.E_total_amount",
+            "F": "seat.F_total_amount",
+            "G": "seat.G_total_amount",
+            "H": "seat.H_total_amount",
         }
-        transaction_collection.insert_one(transaction_data)
-        seat_sums = {seat: 0 for seat in 'ABCDEFGH'}
-        for item in updated_table['users']:
-            if item['user_id'] == user_id and item['seat'] in seat_sums:
-                seat_sums[item['seat']] += item['amount']       
-        return JSONResponse(status_code=200, content={"success": True, "msg": "Seat amount updated successfully", "data": {
-            "sum_A": seat_sums["A"],
-            "sum_B": seat_sums["B"],
-            "sum_C": seat_sums["C"],
-            "sum_D": seat_sums["D"],
-            "sum_E": seat_sums["E"],
-            "sum_F": seat_sums["F"],
-            "sum_G": seat_sums["G"],
-            "sum_H": seat_sums["H"],
-            "A_total_amount": updated_table["seat"]["A_total_amount"],
-            "B_total_amount": updated_table["seat"]["B_total_amount"],
-            "C_total_amount": updated_table["seat"]["C_total_amount"],
-            "D_total_amount": updated_table["seat"]["D_total_amount"],
-            "E_total_amount": updated_table["seat"]["E_total_amount"],
-            "F_total_amount": updated_table["seat"]["F_total_amount"],
-            "G_total_amount": updated_table["seat"]["G_total_amount"],
-            "H_total_amount": updated_table["seat"]["H_total_amount"],
-        },
-        "currentBalance":updated_balance["user_diamond"]
-        })
-    else:
-        credit_balance = table_balance_collection.find_one_and_update(
+        if seat in seat_total_amount_field:
+            update_obj["$inc"] = {seat_total_amount_field[seat]: amount}
+        updated_balance = user_login_table.find_one_and_update(
             {"_id": table_balance["_id"]},
-            {"$inc": {"user_diamond": amount}},
+            {"$inc": {"Udiamonds": - amount}},
             return_document=ReturnDocument.AFTER
         )
-        if not credit_balance or int(credit_balance["user_diamond"]) - int(amount) != user_diamond:
+        if not updated_balance or int(updated_balance["Udiamonds"]) + int(amount) != user_diamond:
             return JSONResponse(status_code=500, content={"success": False, "msg": "Something went wrong"})
-        return JSONResponse(status_code=500, content={"success": False, "msg": "Something went wrong"})
+
+        updated_table = table_collection.find_one_and_update(
+            {"_id": ObjectId(id)},
+            update_obj,
+            return_document=ReturnDocument.AFTER
+        )
+        if updated_table:
+            transaction_id = secrets.token_hex(8)
+            transaction_data = {
+                "transaction_id": transaction_id,
+                "transaction_type": "debited",
+                "transaction_amount": amount,
+                "transaction_status": "success",
+                "transaction_date": datetime.datetime.now(),
+                "sender_type": "user",
+                "receiver_type": "game",
+                "sender_UID": UID,
+                "before_tran_balance": user_diamond,
+                "after_tran_balance": updated_balance["Udiamonds"],
+                "receiver_UID": id,
+                "user_wallet_type_from": "diamonds",
+                "user_wallet_type_to": "diamonds",
+                "entity_type": {
+                    "type": "game",
+                    "game_id": id,
+                    "game_name": "greedy"
+                }
+            }
+            transaction_collection.insert_one(transaction_data)
+            seat_sums = {seat: 0 for seat in 'ABCDEFGH'}
+            for item in updated_table['users']:
+                if item['UID'] == UID and item['seat'] in seat_sums:
+                    seat_sums[item['seat']] += item['amount']       
+            return JSONResponse(status_code=200, content={"success": True, "msg": "Seat amount updated successfully", "data": {
+                "sum_A": seat_sums["A"],
+                "sum_B": seat_sums["B"],
+                "sum_C": seat_sums["C"],
+                "sum_D": seat_sums["D"],
+                "sum_E": seat_sums["E"],
+                "sum_F": seat_sums["F"],
+                "sum_G": seat_sums["G"],
+                "sum_H": seat_sums["H"],
+                "A_total_amount": updated_table["seat"]["A_total_amount"],
+                "B_total_amount": updated_table["seat"]["B_total_amount"],
+                "C_total_amount": updated_table["seat"]["C_total_amount"],
+                "D_total_amount": updated_table["seat"]["D_total_amount"],
+                "E_total_amount": updated_table["seat"]["E_total_amount"],
+                "F_total_amount": updated_table["seat"]["F_total_amount"],
+                "G_total_amount": updated_table["seat"]["G_total_amount"],
+                "H_total_amount": updated_table["seat"]["H_total_amount"],
+            },
+            "currentBalance":updated_balance["Udiamonds"]
+            })
+        else:
+            credit_balance = user_login_table.find_one_and_update(
+                {"_id": table_balance["_id"]},
+                {"$inc": {"Udiamonds": amount}},
+                return_document=ReturnDocument.AFTER
+            )
+            if not credit_balance or int(credit_balance["Udiamonds"]) - int(amount) != user_diamond:
+                return JSONResponse(status_code=500, content={"success": False, "msg": "Something went wrong"})
+            return JSONResponse(status_code=500, content={"success": False, "msg": "Something went wrong"})
+    except Exception as err:
+        import traceback # NOTE: Not for production
+        tb_str = ''.join(traceback.format_exception(etype=type(err), value=err, tb=err.__traceback__)) # NOTE: Not for production
+        
+        # Send the JSONResponse with detailed traceback
+        return JSONResponse(
+            status_code=404,
+            content={
+                "success": False,
+                "msg": str(err),
+                "traceback": tb_str # NOTE: Not for production
+            }
+        )
 
 
-@router.get("/today-user-profit/{user_id}")
-async def today_user_profit(user_id: str):
+@router.get("/today-user-profit/{UID}")
+async def today_user_profit(UID: str):
     try:
         import datetime
         # Get the current date and time
@@ -338,7 +350,7 @@ async def today_user_profit(user_id: str):
             {
                 "$match": {
                     "transaction_date": {"$gte": midnight_today},
-                    "sender_id": user_id,
+                    "sender_UID": UID,
                     "transaction_type": "credited"
                 }
             },
@@ -443,10 +455,7 @@ def checkPizzaSladWin(total_bidding,doc,exist_rc ,id):
     rc_on_port_pizza = int(totalpizza) + int(exist_rc)
     rc_on_port_slad = int(totalslad) + int(exist_rc)
     candidate_winner_port = {"Pizza": rc_on_port_pizza, "Slad": rc_on_port_slad}
-    print("this is rc_on_port_pizza",rc_on_port_pizza)
-    print("this is rc_on_port_slad",rc_on_port_slad)
     winner = helptofindwinner(candidate_winner_port,True)
-    print("this is winner",winner)
     winnerUsers = []
     if candidate_winner_port[winner] < 0:
         return False
