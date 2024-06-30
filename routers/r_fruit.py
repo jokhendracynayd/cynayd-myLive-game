@@ -18,14 +18,12 @@ router = APIRouter()
 table_collection = db['fruits']
 table_balance_collection = db["user_wallet_balances"]
 transaction_collection = db["transactions"]
+user_login_table= db["user_logins"]
 
 from controllers.credit_diamonds import credit_diamonds as new_credit_diamonds
+
 class UpdateSeatAmountRequest(BaseModel):
-    user_id: str
-    amount: int
-    seat: str
-class UpdateSeatAmountRequest(BaseModel):
-    user_id: str
+    UID: str
     amount: float
     seat: str
 
@@ -54,12 +52,12 @@ async def check_active_game_and_end():
         print(err)
 
 
-@router.get('/walletBalance/{user_id}')
-async def walletBalance(user_id:str):
-    table_balance = table_balance_collection.find_one({"user_id": user_id})
+@router.get('/wallet-balance/{UID}')
+async def walletBalance(UID:str):
+    table_balance = user_login_table.find_one({"UID": UID})
     return {
         "data":{
-            "diamond":table_balance["user_diamond"]
+            "diamond":table_balance["Udiamonds"]
             },
         "success":True,
         "msg":"Wallet balance"
@@ -105,20 +103,23 @@ async def recharge_wallet(request: RechargeRequest):
 @router.get("/create")
 async def create():
     try:
-        teen_patti_game =  client.get("fruit_game")
-        if teen_patti_game is None:
+        fruit_game =  client.get("fruit_game")
+        if fruit_game is None:
             game_id = secrets.token_hex(8)
             fruit=Fruit(game_id=game_id,seat=Seat())
             fruit_dict = fruit.dict()
             doc_id=table_collection.insert_one(fruit_dict).inserted_id
             doc=table_collection.find_one({"_id":ObjectId(doc_id)})
-            client.setex(str(doc_id), 28, str(doc)),
-            client.setex("fruit_game", 23, str(doc)),
+            client.setex(str(doc_id), 28, str(doc["_id"])),
+            client.setex("fruit_game", 23, str(doc["_id"])),
             await check_active_game_and_end()
             return {
                 "success": True,
                 "msg": "Game created",
-                "data": doc
+                "data": {
+                    "_id": doc_id,
+                    "game_last_count": doc["game_last_count"]
+                }
             }
         else:
             ttl =  client.ttl("fruit_game")
@@ -209,8 +210,8 @@ def randomGenrate(result):
 
 
 
-@router.get('/user-bid/{game_id}/{user_id}')
-async def user_bid(game_id: str, user_id: str):
+@router.get('/user-bid/{game_id}/{UID}')
+async def user_bid(game_id: str, UID: str):
     portUpdate = client.get("fruit_portUpdate")
     prev_gameId=client.get("fruit_prev_gameId")
     if prev_gameId is None:
@@ -229,9 +230,9 @@ async def user_bid(game_id: str, user_id: str):
             {"$match": {"_id": ObjectId(game_id)}},
         ]
         result = list(table_collection.aggregate(pipeline))
-        sum_A = sum(item['amount'] for item in result[0]['users'] if item['user_id'] == user_id and item['seat'] == 'A')
-        sum_B = sum(item['amount'] for item in result[0]['users'] if item['user_id'] == user_id and item['seat'] == 'B')
-        sum_C = sum(item['amount'] for item in result[0]['users'] if item['user_id'] == user_id and item['seat'] == 'C')
+        sum_A = sum(item['amount'] for item in result[0]['users'] if item['UID'] == UID and item['seat'] == 'A')
+        sum_B = sum(item['amount'] for item in result[0]['users'] if item['UID'] == UID and item['seat'] == 'B')
+        sum_C = sum(item['amount'] for item in result[0]['users'] if item['UID'] == UID and item['seat'] == 'C')
         if game_id != prev_gameId:
             # prev_gameId=game_id
             client.set("fruit_prev_gameId",js.dumps(game_id))
@@ -268,15 +269,15 @@ async def update_seat_amount(id: str, request: UpdateSeatAmountRequest):
             "C_total_amount":0
         }
         client.set("fruit_portUpdate",js.dumps(portUpdate))
-    prev_gameId=client.get("fruit_prev_gameId")
+    prev_gameId = client.get("fruit_prev_gameId")
     if prev_gameId is None:
-        prev_gameId=None
+        prev_gameId = None
     else:
-        prev_gameId=js.loads(prev_gameId)
-    user_id = request.user_id
+        prev_gameId = js.loads(prev_gameId)
+    UID = request.UID
     amount = request.amount
     seat = request.seat
-    if not user_id or not amount or not seat:
+    if not UID or not amount or not seat:
         return{
             "success":False,
             "msg":"Invalid data"
@@ -297,7 +298,7 @@ async def update_seat_amount(id: str, request: UpdateSeatAmountRequest):
             "msg":"This game has ended, please wait"
         }
 
-    table_balance = table_balance_collection.find_one({"user_id": user_id})
+    table_balance = user_login_table.find_one({"UID": UID})
 
     if not table_balance:
         # raise HTTPException(status_code=404, detail="No data found")
@@ -306,7 +307,7 @@ async def update_seat_amount(id: str, request: UpdateSeatAmountRequest):
             "msg":"No data found"
         }
 
-    user_diamond = table_balance["user_diamond"]
+    user_diamond = table_balance["Udiamonds"]
 
     if user_diamond < amount:
         # raise HTTPException(status_code=400, detail="Insufficient balance")
@@ -315,7 +316,7 @@ async def update_seat_amount(id: str, request: UpdateSeatAmountRequest):
             "msg":"Insufficient balance"
         }
 
-    update_obj = {"$push": {"users": {"user_id": user_id, "seat": seat, "amount": amount}}}
+    update_obj = {"$push": {"users": {"UID": UID, "seat": seat, "amount": amount}}}
 
     if seat == "A":
         update_obj["$inc"] = {"seat.A_total_amount": amount}
@@ -324,12 +325,12 @@ async def update_seat_amount(id: str, request: UpdateSeatAmountRequest):
     elif seat == "C":
         update_obj["$inc"] = {"seat.C_total_amount": amount}
 
-    updated_balance = table_balance_collection.find_one_and_update(
+    updated_balance = user_login_table.find_one_and_update(
         {"_id": table_balance["_id"]},
-        {"$inc": {"user_diamond": -amount}},
+        {"$inc": {"Udiamonds": - amount}},
         return_document=ReturnDocument.AFTER
     )
-    if not updated_balance or int(updated_balance["user_diamond"]) + int(amount) != user_diamond:
+    if not updated_balance or int(updated_balance["Udiamonds"]) + int(amount) != user_diamond:
         # raise HTTPException(status_code=500, detail="Something went wrong")
         return{
             "success":False,
@@ -351,10 +352,10 @@ async def update_seat_amount(id: str, request: UpdateSeatAmountRequest):
             "transaction_date": datetime.datetime.now(),
             "sender_type": "user",
             "receiver_type": "game",
-            "sender_id": user_id,
+            "sender_UID": UID,
             "before_tran_balance": user_diamond,
-            "after_tran_balance": updated_balance["user_diamond"],
-            "receiver_id": id,
+            "after_tran_balance": updated_balance["Udiamonds"],
+            "receiver_UID": id,
             "user_wallet_type_from": "diamonds",
             "user_wallet_type_to": "diamonds",
             "entity_type": {
@@ -366,7 +367,7 @@ async def update_seat_amount(id: str, request: UpdateSeatAmountRequest):
         transaction_collection.insert_one(transaction_data)
         seat_sums = {seat: 0 for seat in 'ABC'}
         for item in updated_table['users']:
-            if item['user_id'] == user_id and item['seat'] in seat_sums:
+            if item['UID'] == UID and item['seat'] in seat_sums:
                 seat_sums[item['seat']] += item['amount']
         if id != prev_gameId:
             client.set("fruit_prev_gameId",js.dumps(id))
@@ -389,15 +390,15 @@ async def update_seat_amount(id: str, request: UpdateSeatAmountRequest):
                 "B_total_amount": finalResult['B_total_amount'],
                 "C_total_amount": finalResult['C_total_amount']
             },
-            "currentBalance":updated_balance["user_diamond"]
+            "currentBalance":updated_balance["Udiamonds"]
         }
     else:
-        credit_balance = table_balance_collection.find_one_and_update(
+        credit_balance = user_login_table.find_one_and_update(
             {"_id": table_balance["_id"]},
-            {"$inc": {"user_diamond": amount}},
+            {"$inc": {"Udiamonds": amount}},
             return_document=ReturnDocument.AFTER
         )
-        if not credit_balance or int(credit_balance["user_diamond"]) - int(amount) != user_diamond:
+        if not credit_balance or int(credit_balance["Udiamonds"]) - int(amount) != user_diamond:
             # raise HTTPException(status_code=500, detail="Something went wrong")
             return{
                 "success":False,

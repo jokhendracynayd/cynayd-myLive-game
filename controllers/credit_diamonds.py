@@ -124,7 +124,7 @@ def credit_greedy_diamonds(winner:str,winnerUsers:list,game_id:str,winnerRatio:d
 def credit_diamonds(winner:str,winnerUsers:list,game_id:str):
     WinningAmount = {}
     for ele in winnerUsers:
-      user_id = str(ele['user_id'])
+      user_id = str(ele['UID'])
       amount = float(ele['amount'])
       if user_id in WinningAmount:
          WinningAmount[user_id]['BetAmount'] += amount
@@ -134,9 +134,9 @@ def credit_diamonds(winner:str,winnerUsers:list,game_id:str):
             'BetAmount': amount,
             'WinAmount': amount * 3.0
           }
-      user=table_balance_collection.find_one_and_update(
-         {"user_id":ele['user_id']},
-         {'$inc':{"user_diamond":ele["amount"]*3.0}},
+      user=user_login_table.find_one_and_update(
+         {"UID":ele['UID']},
+         {'$inc':{"Udiamonds":ele["amount"]*3.0}},
           return_document=ReturnDocument.AFTER
          )
       if user:
@@ -149,10 +149,10 @@ def credit_diamonds(winner:str,winnerUsers:list,game_id:str):
             "transaction_date": datetime.datetime.now(),
             "sender_type": "user",
             "receiver_type": "game",
-            "sender_id": ele["user_id"],
-            "before_tran_balance": user["user_diamond"]-ele["amount"]*3.0,
-            "after_tran_balance": user["user_diamond"],
-            "receiver_id": game_id,
+            "sender_UID": ele["UID"],
+            "before_tran_balance": user["Udiamonds"]-ele["amount"]*3.0,
+            "after_tran_balance": user["Udiamonds"],
+            "receiver_UID": game_id,
             "user_wallet_type_from": "diamonds",
             "user_wallet_type_to": "diamonds",
             "entity_type": {
@@ -173,10 +173,10 @@ def credit_diamonds(winner:str,winnerUsers:list,game_id:str):
             "transaction_date": datetime.datetime.now(),
             "sender_type": "user",
             "receiver_type": "game",
-            "sender_id": ele["user_id"],
-            "before_tran_balance": user["user_diamond"]-ele["amount"]*3.0,
-            "after_tran_balance": user["user_diamond"],
-            "receiver_id": game_id,
+            "sender_UID": ele["UID"],
+            "before_tran_balance": user["Udiamonds"] - ele["amount"]*3.0,
+            "after_tran_balance": user["Udiamonds"],
+            "receiver_UID": game_id,
             "user_wallet_type_from": "diamonds",
             "user_wallet_type_to": "diamonds",
             "entity_type": {
@@ -214,6 +214,9 @@ def credit_diamonds(winner:str,winnerUsers:list,game_id:str):
         "success": False,
         "msg": "Something went wrong"
         }
+    
+    
+    
     
 def credit_diamonds_teen_patti(winner:str,winnerUsers:list,game_id:str):
     WinningAmount = {}
