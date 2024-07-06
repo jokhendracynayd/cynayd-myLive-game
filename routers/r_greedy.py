@@ -151,53 +151,53 @@ def randomGenrate(result):
 
 
 
-@router.get('/user-bid/{game_id}/{user_id}')
-async def user_bid(game_id: str, user_id: str):
-    portUpdate = client.get("fruit_portUpdate")
-    prev_gameId=client.get("fruit_prev_gameId")
-    if prev_gameId is None:
-        prev_gameId=None
-    else:
-        prev_gameId=js.loads(prev_gameId)
-    if portUpdate is None:
-        portUpdate={
-            "A_total_amount":0,
-            "B_total_amount":0,
-            "C_total_amount":0
-        }
-        client.set("fruit_portUpdate",js.dumps(portUpdate))
-    try:
-        pipeline = [
-            {"$match": {"_id": ObjectId(game_id)}},
-        ]
-        result = list(table_collection.aggregate(pipeline))
-        sum_A = sum(item['amount'] for item in result[0]['users'] if item['user_id'] == user_id and item['seat'] == 'A')
-        sum_B = sum(item['amount'] for item in result[0]['users'] if item['user_id'] == user_id and item['seat'] == 'B')
-        sum_C = sum(item['amount'] for item in result[0]['users'] if item['user_id'] == user_id and item['seat'] == 'C')
-        if game_id != prev_gameId:
-            # prev_gameId=game_id
-            client.set("fruit_prev_gameId",js.dumps(game_id))
-            portUpdate={
-            "A_total_amount":0,
-            "B_total_amount":0,
-            "C_total_amount":0
-            }
-            client.set("fruit_portUpdate",js.dumps(portUpdate))
-        finalResult = randomGenrate(result[0])
-        return {
-            "success": True,
-            "msg": "User bid found",
-            "data": {
-                "sum_A": sum_A,
-                "sum_B": sum_B,
-                "sum_C": sum_C,
-                "A_total_amount": finalResult['A_total_amount'],
-                "B_total_amount": finalResult['B_total_amount'],
-                "C_total_amount": finalResult['C_total_amount']
-            },
-        } 
-    except Exception as err:
-        raise JSONResponse(status_code=500, detail=str(err))   
+# @router.get('/user-bid/{game_id}/{user_id}')
+# async def user_bid(game_id: str, user_id: str):
+#     portUpdate = client.get("fruit_portUpdate")
+#     prev_gameId=client.get("fruit_prev_gameId")
+#     if prev_gameId is None:
+#         prev_gameId=None
+#     else:
+#         prev_gameId=js.loads(prev_gameId)
+#     if portUpdate is None:
+#         portUpdate={
+#             "A_total_amount":0,
+#             "B_total_amount":0,
+#             "C_total_amount":0
+#         }
+#         client.set("fruit_portUpdate",js.dumps(portUpdate))
+#     try:
+#         pipeline = [
+#             {"$match": {"_id": ObjectId(game_id)}},
+#         ]
+#         result = list(table_collection.aggregate(pipeline))
+#         sum_A = sum(item['amount'] for item in result[0]['users'] if item['user_id'] == user_id and item['seat'] == 'A')
+#         sum_B = sum(item['amount'] for item in result[0]['users'] if item['user_id'] == user_id and item['seat'] == 'B')
+#         sum_C = sum(item['amount'] for item in result[0]['users'] if item['user_id'] == user_id and item['seat'] == 'C')
+#         if game_id != prev_gameId:
+#             # prev_gameId=game_id
+#             client.set("fruit_prev_gameId",js.dumps(game_id))
+#             portUpdate={
+#             "A_total_amount":0,
+#             "B_total_amount":0,
+#             "C_total_amount":0
+#             }
+#             client.set("fruit_portUpdate",js.dumps(portUpdate))
+#         finalResult = randomGenrate(result[0])
+#         return {
+#             "success": True,
+#             "msg": "User bid found",
+#             "data": {
+#                 "sum_A": sum_A,
+#                 "sum_B": sum_B,
+#                 "sum_C": sum_C,
+#                 "A_total_amount": finalResult['A_total_amount'],
+#                 "B_total_amount": finalResult['B_total_amount'],
+#                 "C_total_amount": finalResult['C_total_amount']
+#             },
+#         } 
+#     except Exception as err:
+#         raise JSONResponse(status_code=500, detail=str(err))   
 
 
 

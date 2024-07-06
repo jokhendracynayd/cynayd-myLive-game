@@ -52,6 +52,52 @@ async def check_active_game_and_end():
         print(err)
 
 
+@router.get("/create")
+async def create():
+    try:
+        fruit_game =  client.get("fruit_game")
+        if fruit_game is None:
+            game_id = secrets.token_hex(8)
+            fruit=Fruit(game_id=game_id,seat=Seat())
+            fruit_dict = fruit.dict()
+            doc_id=table_collection.insert_one(fruit_dict).inserted_id
+            doc=table_collection.find_one({"_id":ObjectId(doc_id)})
+            client.setex(str(doc_id), 28, str(doc["_id"])),
+            client.setex("fruit_game", 23, str(doc["_id"])),
+            await check_active_game_and_end()
+            return {
+                "success": True,
+                "msg": "Game created",
+                "data": {
+                    "_id": doc_id,
+                    "game_last_count": doc["game_last_count"]
+                }
+            }
+        else:
+            ttl =  client.ttl("fruit_game")
+            if ttl >= 13:
+                await check_active_game_and_end()
+                docs = table_collection.find_one({"game_status": "active"}, {"game_last_count": 1})
+                return {
+                    "success": True,
+                    "msg": "Game already created",
+                    "data": docs
+                }
+            else:
+                await check_active_game_and_end()
+                return {
+                    "success": False,
+                    "msg": "Game already created but time is less than 15 sec",
+                    "wait_time": ttl
+                }
+    except Exception as err:
+        return {
+            "success": False,
+            "msg": err
+        }
+
+
+
 @router.get('/wallet-balance/{UID}')
 async def walletBalance(UID:str):
     table_balance = user_login_table.find_one({"UID": UID})
@@ -98,52 +144,6 @@ async def recharge_wallet(request: RechargeRequest):
             "msg":str(err)
         }
         
-
-
-@router.get("/create")
-async def create():
-    try:
-        fruit_game =  client.get("fruit_game")
-        if fruit_game is None:
-            game_id = secrets.token_hex(8)
-            fruit=Fruit(game_id=game_id,seat=Seat())
-            fruit_dict = fruit.dict()
-            doc_id=table_collection.insert_one(fruit_dict).inserted_id
-            doc=table_collection.find_one({"_id":ObjectId(doc_id)})
-            client.setex(str(doc_id), 28, str(doc["_id"])),
-            client.setex("fruit_game", 23, str(doc["_id"])),
-            await check_active_game_and_end()
-            return {
-                "success": True,
-                "msg": "Game created",
-                "data": {
-                    "_id": doc_id,
-                    "game_last_count": doc["game_last_count"]
-                }
-            }
-        else:
-            ttl =  client.ttl("fruit_game")
-            if ttl >= 13:
-                await check_active_game_and_end()
-                docs = table_collection.find_one({"game_status": "active"}, {"game_last_count": 1})
-                return {
-                    "success": True,
-                    "msg": "Game already created",
-                    "data": docs
-                }
-            else:
-                await check_active_game_and_end()
-                return {
-                    "success": False,
-                    "msg": "Game already created but time is less than 15 sec",
-                    "wait_time": ttl
-                }
-    except Exception as err:
-        return {
-            "success": False,
-            "msg": err
-        }
-
 
 
 def randomGenrate(result):
@@ -212,8 +212,9 @@ def randomGenrate(result):
 
 @router.get('/user-bid/{game_id}/{UID}')
 async def user_bid(game_id: str, UID: str):
+    # print("this is game id and UID",game_id,UID)
     portUpdate = client.get("fruit_portUpdate")
-    prev_gameId=client.get("fruit_prev_gameId")
+    prev_gameId = client.get("fruit_prev_gameId")
     if prev_gameId is None:
         prev_gameId=None
     else:

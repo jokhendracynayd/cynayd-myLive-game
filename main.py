@@ -10,6 +10,7 @@ import asyncio
 from pydantic import BaseModel
 from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
+import time
 app = FastAPI(debug=True)
 # app.include_router(new_router,prefix='/api/new-fruit')
 app.include_router(fruit_router,prefix="/api/fruit-game")
@@ -29,13 +30,16 @@ app.add_middleware(
 
 async def task_to_schedule_for_greedy():
     while True:
+        start_time = time.time()
         data = table_greedy_collection.find_one({"game_status": "active"})
         if data:
             count= data["game_last_count"]
             if count>0:
                 table_greedy_collection.find_one_and_update({"game_status": "active"},{'$inc': {'game_last_count': -1}})
         # print("this is task")
-        await asyncio.sleep(1)
+        elapsed_time = time.time() - start_time
+        sleep_time = max(0, 1 - elapsed_time)
+        await asyncio.sleep(sleep_time)
 
 
 # This is schedular for fruit game
@@ -45,13 +49,17 @@ async def home():
 
 async def task_to_schedule():
     while True:
+        start_time = time.time()
         data = table_collection.find_one({"game_status": "active"})
         if data:
             count= data["game_last_count"]
             if count>0:
                 table_collection.find_one_and_update({"game_status": "active"},{'$inc': {'game_last_count': -1}})
         # print("this is task")
-        await asyncio.sleep(1) 
+        elapsed_time = time.time() - start_time
+        sleep_time = max(0, 1 - elapsed_time)
+        
+        await asyncio.sleep(sleep_time)
 
 
 # This is schedular for teen patti
