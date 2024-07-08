@@ -522,7 +522,7 @@ async def winner_announcement(id: str):
                     rc_on_port_h = int(H_winning) + int(exist_rc)
                     candidate_winner_port = {"A": rc_on_port_a, "B": rc_on_port_b, "C": rc_on_port_c, "D": rc_on_port_d, "E": rc_on_port_e, "F": rc_on_port_f, "G": rc_on_port_g, "H": rc_on_port_h}
                     #DONE: First check the counter value is greater than defined value e.g like 5 or 500
-                    if counter >= 5: # Here Goes the code When counter greater than 5 or exceed the defined value
+                    if counter >= 500: # Here Goes the code When counter greater than 5 or exceed the defined value
                         if exist_rc >= 0: # Here Goes the code When rc greater than 0
                             #DONE: When counter exceed and rc greater than 0 then declare the winner to minium rc_port and update the rc and counter to 0
                             #TODO: Here Check checkPizzaSladWin() function

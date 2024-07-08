@@ -570,7 +570,7 @@ async def winner_announced(id: str):
                     counter = int(counter)
                     exist_rc = int(exist_rc)
                     winner = ""
-                    if counter>=5000:
+                    if counter>=5:
                         # when counter greater than 5
                         if exist_rc > 0:
                             # when rc greater than 0
