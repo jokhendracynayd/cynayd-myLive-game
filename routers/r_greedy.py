@@ -439,15 +439,15 @@ def helptosendresponse(doc,winner,id,winnerUsers=[]):
 #PROGRESS: Optimize the code
 
 def checkPizzaSladWin(total_bidding,doc,exist_rc ,id):
-    A_winning = total_bidding - int(doc['seat']['A_total_amount']) * 4.37
-    B_winning = total_bidding - int(doc['seat']['B_total_amount']) * 4.37
-    C_winning = total_bidding - int(doc['seat']['C_total_amount']) * 4.37
-    D_winning = total_bidding - int(doc['seat']['D_total_amount']) * 4.37
+    A_winning = total_bidding - int(doc['seat']['A_total_amount']) * 7.0
+    B_winning = total_bidding - int(doc['seat']['B_total_amount']) * 7.0
+    C_winning = total_bidding - int(doc['seat']['C_total_amount']) * 7.0
+    D_winning = total_bidding - int(doc['seat']['D_total_amount']) * 7.0
     
-    E_winning = total_bidding - int(doc['seat']['E_total_amount']) * 1.25
-    F_winning = total_bidding - int(doc['seat']['F_total_amount']) * 1.25
-    G_winning = total_bidding - int(doc['seat']['G_total_amount']) * 1.25
-    H_winning = total_bidding - int(doc['seat']['H_total_amount']) * 1.25
+    E_winning = total_bidding - int(doc['seat']['E_total_amount']) * 5.0
+    F_winning = total_bidding - int(doc['seat']['F_total_amount']) * 5.0
+    G_winning = total_bidding - int(doc['seat']['G_total_amount']) * 5.0
+    H_winning = total_bidding - int(doc['seat']['H_total_amount']) * 5.0
     
     totalslad = E_winning + F_winning + G_winning + H_winning
     totalpizza = A_winning + B_winning + C_winning + D_winning
@@ -471,7 +471,7 @@ def checkPizzaSladWin(total_bidding,doc,exist_rc ,id):
     if len(winnerUsers)==0:
         return JSONResponse(status_code=200, content=greedy_game_boat(winner,id))
     else:
-        return JSONResponse(status_code=200, content=credit_greedy_diamonds(winner,winnerUsers,id,{"Slad": 1.25,"Pizza": 4.37}))  
+        return JSONResponse(status_code=200, content=credit_greedy_diamonds(winner,winnerUsers,id,{"Slad": 5.0,"Pizza": 7.0}))  
     
     
     
@@ -479,7 +479,7 @@ def checkPizzaSladWin(total_bidding,doc,exist_rc ,id):
     
 @router.get("/winner-announcement/{id}") 
 async def winner_announcement(id: str):
-    winnerRatio = { "Pizza": 4.37, "Slad": 1.25, "H": 5, "G": 5, "F": 5, "E": 5, "D": 45, "C": 25, "B": 15, "A": 10 }
+    winnerRatio = { "Pizza": 7.0, "Slad": 5.0, "H": 5, "G": 5, "F": 5, "E": 5, "D": 45, "C": 25, "B": 15, "A": 10 }
     try:
         doc = table_collection.find_one({'_id': ObjectId(id)}) # Get the game data
         if doc is None:
