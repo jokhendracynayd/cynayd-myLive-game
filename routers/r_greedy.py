@@ -527,13 +527,14 @@ async def winner_announcement(id: str):
                             #DONE: When counter exceed and rc greater than 0 then declare the winner to minium rc_port and update the rc and counter to 0
                             #TODO: Here Check checkPizzaSladWin() function
                             
-                            isDone = checkPizzaSladWin(total_bidding,doc,exist_rc,id)
-                            # print("This is done",isDone)
-                            if isDone:
-                                # print("👻👻👻👻👻👻👻",isDone)
-                                client.set("greedyRC", 0)
-                                client.set("greedyCounter", 0)
-                                return isDone
+                            # isDone = checkPizzaSladWin(total_bidding,doc,exist_rc,id)
+                            # # print("This is done",isDone)
+                            # if isDone:
+                            #     # print("👻👻👻👻👻👻👻",isDone)
+                            #     client.set("greedyRC", 0)
+                            #     client.set("greedyCounter", 0)
+                            #     return isDone
+                            
                             winner = helptofindwinner(candidate_winner_port,True) 
                             newRC = candidate_winner_port[winner]
                             if newRC >= 0: #DONE: When newRC greater than 0
