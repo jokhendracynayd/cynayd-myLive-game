@@ -2,7 +2,6 @@
 from fastapi import FastAPI,BackgroundTasks
 from routers.r_fruit import router as fruit_router
 from routers.r_teen_patti import router as teen_patti_router
-# from routers.r_new_fruit import router as new_router
 from routers.r_greedy import router as greedy_router
 from fastapi.exceptions import HTTPException
 from config.db import db
@@ -12,9 +11,8 @@ from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 import time
 app = FastAPI(debug=True)
-# app.include_router(new_router,prefix='/api/new-fruit')
 app.include_router(fruit_router,prefix="/api/fruit-game")
-app.include_router(teen_patti_router,prefix="/api/teen-pati")
+app.include_router(teen_patti_router,prefix="/api/teen-patti")
 app.include_router(greedy_router,prefix="/api/greedy-game")
 table_collection = db["fruits"]
 table_teen_patti_collection = db["teen_pattis"]
@@ -66,12 +64,17 @@ async def task_to_schedule():
 
 async def another_task_to_schedule():
     while True:
+        start_time = time.time()
         data = table_teen_patti_collection.find_one({"game_status": "active"})
         if data:
             count= data["game_last_count"]
             if count>0:
                 table_teen_patti_collection.find_one_and_update({"game_status": "active"},{'$inc': {'game_last_count': -1}})
-        await asyncio.sleep(1.5) 
+        # print("this is task")
+        elapsed_time = time.time() - start_time
+        sleep_time = max(0, 1 - elapsed_time)
+        
+        await asyncio.sleep(sleep_time)
 
 
 def run_scheduled_task(background_tasks: BackgroundTasks):
