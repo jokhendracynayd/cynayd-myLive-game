@@ -407,7 +407,7 @@ async def winner_announced(id: str):
                     counter = int(counter)
                     exist_rc = int(exist_rc)
                     winner = ""
-                    if counter>=5:
+                    if counter>=20:
                         # when counter greater than 5
                         if exist_rc > 0:
                             # when rc greater than 0
@@ -672,303 +672,303 @@ async def winner_announced(id: str):
         raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.get("/winner-announcement/{id}")
-async def winner_announced(id: str):
-    try:
-        doc=table_collection.find_one({'_id': ObjectId(id)})
-        if doc is None:
-            raise HTTPException(status_code=404, detail="No data found")
-        if doc["game_status"] == "ended" or doc["winnerAnnounced"] == "yes":
-            return {
-                "success": True,
-                "msg": "Winner already declared",
-                "data":doc["winnedSeat"],
-                "WiningAmount":doc["WiningAmount"],
-                "TopUserWinner":doc["TopUserWinner"],
-                "winnerSeat":doc["winnedSeat"]
-            }
-        if doc["game_status"] == "active":
-            if len(doc["users"]) == 0:
-                luck = ['A', 'B', 'C']
-                winner = random.choice(luck)
-                return teen_patti_boat(winner,id)
-            else:
-                if client.exists("teenPattiRC"):
-                    winnerUsers=[]
-                    exist_rc= client.get("teenPattiRC")
-                    counter=client.get("teenPattiCounter")
-                    total_bidding = int(doc['seat']['A_total_amount'] )+ int(doc['seat']['B_total_amount']) + int(doc['seat']['C_total_amount'])
-                    A_winning = total_bidding - int(doc['seat']['A_total_amount']) * 3
-                    B_winning = total_bidding - int(doc['seat']['B_total_amount']) * 3
-                    C_winning = total_bidding - int(doc['seat']['C_total_amount']) * 3
-                    rc_on_port_a = int(A_winning) + int(exist_rc)
-                    rc_on_port_b = int(B_winning) + int(exist_rc)
-                    rc_on_port_c = int(C_winning) + int(exist_rc)
-                    newRC=0
-                    counter=int(counter)
-                    exist_rc=int(exist_rc)
-                    winner=""
-                    if counter>=5000:
-                        # when counter greater than 5
-                        if exist_rc>0:
-                            # when rc greater than 0
-                            if rc_on_port_a >= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
-                                if rc_on_port_a <= rc_on_port_b and rc_on_port_a <= rc_on_port_c:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                                elif rc_on_port_b <= rc_on_port_a and rc_on_port_b <= rc_on_port_c:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            elif rc_on_port_a <= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
-                                if rc_on_port_b <= rc_on_port_c:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            elif rc_on_port_b <= 0 and rc_on_port_a >= 0 and rc_on_port_c >= 0:
-                                if rc_on_port_a <= rc_on_port_c:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            elif rc_on_port_c <= 0 and rc_on_port_a >= 0 and rc_on_port_b >= 0:
-                                if rc_on_port_b <= rc_on_port_a:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                            elif rc_on_port_a <= 0 and rc_on_port_b <= 0 and rc_on_port_c <= 0:
-                                if rc_on_port_a >= rc_on_port_b and rc_on_port_a >= rc_on_port_c:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                                elif rc_on_port_b >= rc_on_port_c and rc_on_port_b >= rc_on_port_a:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            if winner =="":
-                                winner = "A"
-                                newRC = rc_on_port_a
-                            client.incrby("teenPattiGameRev", int(newRC))
-                            client.set("teenPattiRC", 0)
-                            client.set("teenPattiCounter", 0)
-                            for ele in doc["users"]:
-                                if ele["seat"]==winner:
-                                    winnerUsers.append(ele)
-                            if len(winnerUsers)==0:
-                                return teen_patti_boat(winner,id)
-                            else:
-                                return credit_diamonds_teen_patti(winner,winnerUsers,id)
+# @router.get("/winner-announcement/{id}")
+# async def winner_announced(id: str):
+#     try:
+#         doc=table_collection.find_one({'_id': ObjectId(id)})
+#         if doc is None:
+#             raise HTTPException(status_code=404, detail="No data found")
+#         if doc["game_status"] == "ended" or doc["winnerAnnounced"] == "yes":
+#             return {
+#                 "success": True,
+#                 "msg": "Winner already declared",
+#                 "data":doc["winnedSeat"],
+#                 "WiningAmount":doc["WiningAmount"],
+#                 "TopUserWinner":doc["TopUserWinner"],
+#                 "winnerSeat":doc["winnedSeat"]
+#             }
+#         if doc["game_status"] == "active":
+#             if len(doc["users"]) == 0:
+#                 luck = ['A', 'B', 'C']
+#                 winner = random.choice(luck)
+#                 return teen_patti_boat(winner,id)
+#             else:
+#                 if client.exists("teenPattiRC"):
+#                     winnerUsers=[]
+#                     exist_rc= client.get("teenPattiRC")
+#                     counter=client.get("teenPattiCounter")
+#                     total_bidding = int(doc['seat']['A_total_amount'] )+ int(doc['seat']['B_total_amount']) + int(doc['seat']['C_total_amount'])
+#                     A_winning = total_bidding - int(doc['seat']['A_total_amount']) * 3
+#                     B_winning = total_bidding - int(doc['seat']['B_total_amount']) * 3
+#                     C_winning = total_bidding - int(doc['seat']['C_total_amount']) * 3
+#                     rc_on_port_a = int(A_winning) + int(exist_rc)
+#                     rc_on_port_b = int(B_winning) + int(exist_rc)
+#                     rc_on_port_c = int(C_winning) + int(exist_rc)
+#                     newRC=0
+#                     counter=int(counter)
+#                     exist_rc=int(exist_rc)
+#                     winner=""
+#                     if counter>=5000:
+#                         # when counter greater than 5
+#                         if exist_rc>0:
+#                             # when rc greater than 0
+#                             if rc_on_port_a >= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
+#                                 if rc_on_port_a <= rc_on_port_b and rc_on_port_a <= rc_on_port_c:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                                 elif rc_on_port_b <= rc_on_port_a and rc_on_port_b <= rc_on_port_c:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             elif rc_on_port_a <= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
+#                                 if rc_on_port_b <= rc_on_port_c:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             elif rc_on_port_b <= 0 and rc_on_port_a >= 0 and rc_on_port_c >= 0:
+#                                 if rc_on_port_a <= rc_on_port_c:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             elif rc_on_port_c <= 0 and rc_on_port_a >= 0 and rc_on_port_b >= 0:
+#                                 if rc_on_port_b <= rc_on_port_a:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                             elif rc_on_port_a <= 0 and rc_on_port_b <= 0 and rc_on_port_c <= 0:
+#                                 if rc_on_port_a >= rc_on_port_b and rc_on_port_a >= rc_on_port_c:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                                 elif rc_on_port_b >= rc_on_port_c and rc_on_port_b >= rc_on_port_a:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             if winner =="":
+#                                 winner = "A"
+#                                 newRC = rc_on_port_a
+#                             client.incrby("teenPattiGameRev", int(newRC))
+#                             client.set("teenPattiRC", 0)
+#                             client.set("teenPattiCounter", 0)
+#                             for ele in doc["users"]:
+#                                 if ele["seat"]==winner:
+#                                     winnerUsers.append(ele)
+#                             if len(winnerUsers)==0:
+#                                 return teen_patti_boat(winner,id)
+#                             else:
+#                                 return credit_diamonds_teen_patti(winner,winnerUsers,id)
 
-                        else:
-                            # when rc less than 0
-                            if A_winning >= B_winning and A_winning >= C_winning:
-                                winner = "A"
-                                newRC = rc_on_port_a
-                            elif B_winning >= C_winning and B_winning >= A_winning:
-                                winner = "B"
-                                newRC = rc_on_port_b
-                            else:
-                                winner = "C"
-                                newRC = rc_on_port_c
+#                         else:
+#                             # when rc less than 0
+#                             if A_winning >= B_winning and A_winning >= C_winning:
+#                                 winner = "A"
+#                                 newRC = rc_on_port_a
+#                             elif B_winning >= C_winning and B_winning >= A_winning:
+#                                 winner = "B"
+#                                 newRC = rc_on_port_b
+#                             else:
+#                                 winner = "C"
+#                                 newRC = rc_on_port_c
 
-                            if winner =="":
-                                winner = "A"
-                                newRC = rc_on_port_a
-                            client.set("teenPattiRC", int(newRC))
-                            client.incrby("teenPattiCounter", 1)
-                            for ele in doc["users"]:
-                                if ele["seat"]==winner:
-                                    winnerUsers.append(ele)
-                            if len(winnerUsers)==0:
-                                return teen_patti_boat(winner,id)
-                            else:
-                                return credit_diamonds_teen_patti(winner,winnerUsers,id)
-                    else:
-                        # when counter less than 5
-                        if exist_rc==0:
-                            #when rc equal to 0
-                            luck = ['A', 'B', 'C']
-                            winner = random.choice(luck)
-                            total_winning = 0
-                            total_bidding =int( doc['seat']['A_total_amount']) + int(doc['seat']['B_total_amount']) + int(doc['seat']['C_total_amount'])
-                            if winner == 'A':
-                                total_winning = int(doc['seat']['A_total_amount']) * 3.0
-                            elif winner == 'B':
-                                total_winning = int(doc['seat']['B_total_amount']) * 3.0
-                            else:
-                                total_winning = int(doc['seat']['C_total_amount']) * 3.0
-                            rc=total_bidding-total_winning
-                            client.set("teenPattiRC",int(rc))
-                            client.incrby("teenPattiCounter", 1)
-                            winnerUsers=[]
-                            for ele in doc["users"]:
-                                if ele["seat"]==winner:
-                                    winnerUsers.append(ele)
-                            if len(winnerUsers)==0:
-                                return teen_patti_boat(winner,id)
-                            else:
-                                return credit_diamonds_teen_patti(winner,winnerUsers,id)
-                        elif exist_rc>0:
-                            #when rc greater than 0
-                            if rc_on_port_a >= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
-                                if rc_on_port_a <= rc_on_port_b and rc_on_port_a <= rc_on_port_c:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                                elif rc_on_port_b <= rc_on_port_a and rc_on_port_b <= rc_on_port_c:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            elif rc_on_port_a <= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
-                                if rc_on_port_b <= rc_on_port_c:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            elif rc_on_port_b <= 0 and rc_on_port_a >= 0 and rc_on_port_c >= 0:
-                                if rc_on_port_a <= rc_on_port_c:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            elif rc_on_port_c <= 0 and rc_on_port_a >= 0 and rc_on_port_b >= 0:
-                                if rc_on_port_b <= rc_on_port_a:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                            elif rc_on_port_a <= 0 and rc_on_port_b <= 0 and rc_on_port_c <= 0:
-                                if rc_on_port_a >= rc_on_port_b and rc_on_port_a >= rc_on_port_c:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                                elif rc_on_port_b >= rc_on_port_c and rc_on_port_b >= rc_on_port_a:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            elif rc_on_port_a <= 0 and rc_on_port_b <= 0 and rc_on_port_c >= 0:
-                                newRC = rc_on_port_c
-                                winner = "C"
-                            elif rc_on_port_a <= 0 and rc_on_port_b >= 0 and rc_on_port_c <= 0:
-                                newRC = rc_on_port_b
-                                winner = "B"
-                            elif rc_on_port_a >= 0 and rc_on_port_b <= 0 and rc_on_port_c <= 0:
-                                newRC = rc_on_port_a
-                                winner = "A"
-                            if winner=="":
-                                newRC = rc_on_port_a
-                                winner = "A"
-                            client.set("teenPattiRC", int(newRC))
-                            client.incrby("teenPattiCounter", 1)
-                            for ele in doc["users"]:
-                                if ele["seat"]==winner:
-                                    winnerUsers.append(ele)
-                            if len(winnerUsers)==0:
-                                return teen_patti_boat(winner,id)
-                            else:
-                                return credit_diamonds_teen_patti(winner,winnerUsers,id)
-                        elif exist_rc<0:
-                            #when rc less than 0
-                            if rc_on_port_a <= 0 and rc_on_port_b <= 0 and rc_on_port_c <= 0:
-                                if rc_on_port_a >= rc_on_port_b and rc_on_port_a >= rc_on_port_c:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                                elif rc_on_port_b >= rc_on_port_a and rc_on_port_b >= rc_on_port_c:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            elif rc_on_port_a >= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
-                                if rc_on_port_a <= rc_on_port_b and rc_on_port_a <= rc_on_port_c:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                                elif rc_on_port_b <= rc_on_port_a and rc_on_port_b <= rc_on_port_c:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    winner = "C"
-                            elif rc_on_port_a >= 0 and rc_on_port_b <= 0 and rc_on_port_c <= 0:
-                                newRC = rc_on_port_a
-                                winner = "A"
-                            elif rc_on_port_b >= 0 and rc_on_port_a <= 0 and rc_on_port_c <= 0:
-                                newRC = rc_on_port_b
-                                winner = "B"
-                            elif rc_on_port_c >= 0 and rc_on_port_a <= 0 and rc_on_port_b <= 0:
-                                newRC = rc_on_port_c
-                                winner = "C"
-                            elif rc_on_port_a <= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
-                                if rc_on_port_b <= rc_on_port_c:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            elif rc_on_port_b <= 0 and rc_on_port_a >= 0 and rc_on_port_c >= 0:
-                                if rc_on_port_a <= rc_on_port_c:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                                else:
-                                    newRC = rc_on_port_c
-                                    winner = "C"
-                            elif rc_on_port_c <= 0 and rc_on_port_a >= 0 and rc_on_port_b >= 0:
-                                if rc_on_port_a <= rc_on_port_b:
-                                    newRC = rc_on_port_a
-                                    winner = "A"
-                                else:
-                                    newRC = rc_on_port_b
-                                    winner = "B"
+#                             if winner =="":
+#                                 winner = "A"
+#                                 newRC = rc_on_port_a
+#                             client.set("teenPattiRC", int(newRC))
+#                             client.incrby("teenPattiCounter", 1)
+#                             for ele in doc["users"]:
+#                                 if ele["seat"]==winner:
+#                                     winnerUsers.append(ele)
+#                             if len(winnerUsers)==0:
+#                                 return teen_patti_boat(winner,id)
+#                             else:
+#                                 return credit_diamonds_teen_patti(winner,winnerUsers,id)
+#                     else:
+#                         # when counter less than 5
+#                         if exist_rc==0:
+#                             #when rc equal to 0
+#                             luck = ['A', 'B', 'C']
+#                             winner = random.choice(luck)
+#                             total_winning = 0
+#                             total_bidding =int( doc['seat']['A_total_amount']) + int(doc['seat']['B_total_amount']) + int(doc['seat']['C_total_amount'])
+#                             if winner == 'A':
+#                                 total_winning = int(doc['seat']['A_total_amount']) * 3.0
+#                             elif winner == 'B':
+#                                 total_winning = int(doc['seat']['B_total_amount']) * 3.0
+#                             else:
+#                                 total_winning = int(doc['seat']['C_total_amount']) * 3.0
+#                             rc=total_bidding-total_winning
+#                             client.set("teenPattiRC",int(rc))
+#                             client.incrby("teenPattiCounter", 1)
+#                             winnerUsers=[]
+#                             for ele in doc["users"]:
+#                                 if ele["seat"]==winner:
+#                                     winnerUsers.append(ele)
+#                             if len(winnerUsers)==0:
+#                                 return teen_patti_boat(winner,id)
+#                             else:
+#                                 return credit_diamonds_teen_patti(winner,winnerUsers,id)
+#                         elif exist_rc>0:
+#                             #when rc greater than 0
+#                             if rc_on_port_a >= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
+#                                 if rc_on_port_a <= rc_on_port_b and rc_on_port_a <= rc_on_port_c:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                                 elif rc_on_port_b <= rc_on_port_a and rc_on_port_b <= rc_on_port_c:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             elif rc_on_port_a <= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
+#                                 if rc_on_port_b <= rc_on_port_c:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             elif rc_on_port_b <= 0 and rc_on_port_a >= 0 and rc_on_port_c >= 0:
+#                                 if rc_on_port_a <= rc_on_port_c:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             elif rc_on_port_c <= 0 and rc_on_port_a >= 0 and rc_on_port_b >= 0:
+#                                 if rc_on_port_b <= rc_on_port_a:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                             elif rc_on_port_a <= 0 and rc_on_port_b <= 0 and rc_on_port_c <= 0:
+#                                 if rc_on_port_a >= rc_on_port_b and rc_on_port_a >= rc_on_port_c:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                                 elif rc_on_port_b >= rc_on_port_c and rc_on_port_b >= rc_on_port_a:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             elif rc_on_port_a <= 0 and rc_on_port_b <= 0 and rc_on_port_c >= 0:
+#                                 newRC = rc_on_port_c
+#                                 winner = "C"
+#                             elif rc_on_port_a <= 0 and rc_on_port_b >= 0 and rc_on_port_c <= 0:
+#                                 newRC = rc_on_port_b
+#                                 winner = "B"
+#                             elif rc_on_port_a >= 0 and rc_on_port_b <= 0 and rc_on_port_c <= 0:
+#                                 newRC = rc_on_port_a
+#                                 winner = "A"
+#                             if winner=="":
+#                                 newRC = rc_on_port_a
+#                                 winner = "A"
+#                             client.set("teenPattiRC", int(newRC))
+#                             client.incrby("teenPattiCounter", 1)
+#                             for ele in doc["users"]:
+#                                 if ele["seat"]==winner:
+#                                     winnerUsers.append(ele)
+#                             if len(winnerUsers)==0:
+#                                 return teen_patti_boat(winner,id)
+#                             else:
+#                                 return credit_diamonds_teen_patti(winner,winnerUsers,id)
+#                         elif exist_rc<0:
+#                             #when rc less than 0
+#                             if rc_on_port_a <= 0 and rc_on_port_b <= 0 and rc_on_port_c <= 0:
+#                                 if rc_on_port_a >= rc_on_port_b and rc_on_port_a >= rc_on_port_c:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                                 elif rc_on_port_b >= rc_on_port_a and rc_on_port_b >= rc_on_port_c:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             elif rc_on_port_a >= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
+#                                 if rc_on_port_a <= rc_on_port_b and rc_on_port_a <= rc_on_port_c:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                                 elif rc_on_port_b <= rc_on_port_a and rc_on_port_b <= rc_on_port_c:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     winner = "C"
+#                             elif rc_on_port_a >= 0 and rc_on_port_b <= 0 and rc_on_port_c <= 0:
+#                                 newRC = rc_on_port_a
+#                                 winner = "A"
+#                             elif rc_on_port_b >= 0 and rc_on_port_a <= 0 and rc_on_port_c <= 0:
+#                                 newRC = rc_on_port_b
+#                                 winner = "B"
+#                             elif rc_on_port_c >= 0 and rc_on_port_a <= 0 and rc_on_port_b <= 0:
+#                                 newRC = rc_on_port_c
+#                                 winner = "C"
+#                             elif rc_on_port_a <= 0 and rc_on_port_b >= 0 and rc_on_port_c >= 0:
+#                                 if rc_on_port_b <= rc_on_port_c:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             elif rc_on_port_b <= 0 and rc_on_port_a >= 0 and rc_on_port_c >= 0:
+#                                 if rc_on_port_a <= rc_on_port_c:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                                 else:
+#                                     newRC = rc_on_port_c
+#                                     winner = "C"
+#                             elif rc_on_port_c <= 0 and rc_on_port_a >= 0 and rc_on_port_b >= 0:
+#                                 if rc_on_port_a <= rc_on_port_b:
+#                                     newRC = rc_on_port_a
+#                                     winner = "A"
+#                                 else:
+#                                     newRC = rc_on_port_b
+#                                     winner = "B"
 
-                            if winner == "":
-                                newRC = rc_on_port_a
-                                winner = "A"
-                            client.set("teenPattiRC", int(newRC))
-                            client.incrby("teenPattiCounter", 1)
-                            for ele in doc["users"]:
-                                if ele["seat"]==winner:
-                                    winnerUsers.append(ele)
-                            if len(winnerUsers)==0:
-                                return teen_patti_boat(winner,id)
-                            else:
-                                return credit_diamonds_teen_patti(winner,winnerUsers,id)
+#                             if winner == "":
+#                                 newRC = rc_on_port_a
+#                                 winner = "A"
+#                             client.set("teenPattiRC", int(newRC))
+#                             client.incrby("teenPattiCounter", 1)
+#                             for ele in doc["users"]:
+#                                 if ele["seat"]==winner:
+#                                     winnerUsers.append(ele)
+#                             if len(winnerUsers)==0:
+#                                 return teen_patti_boat(winner,id)
+#                             else:
+#                                 return credit_diamonds_teen_patti(winner,winnerUsers,id)
 
-                else:
-                    luck = ['A', 'B', 'C']
-                    winner = random.choice(luck)
-                    total_winning = 0
-                    total_bidding = int(doc['seat']['A_total_amount'] )+int( doc['seat']['B_total_amount']) + int(doc['seat']['C_total_amount'])
-                    if winner == 'A':
-                        total_winning = int(doc['seat']['A_total_amount']) * 3
-                    elif winner == 'B':
-                        total_winning = int(doc['seat']['B_total_amount']) * 3
-                    else:
-                        total_winning = int(doc['seat']['C_total_amount'] ) * 3
-                    rc=total_bidding-total_winning
-                    client.set("teenPattiRC",int(rc))
-                    client.set("teenPattiCounter", 1)
-                    winnerUsers=[]
-                    for ele in doc["users"]:
-                        if ele["seat"] == winner:
-                            winnerUsers.append(ele)
-                    if len(winnerUsers)==0:
-                        return teen_patti_boat(winner,id)
-                    else:
-                        return credit_diamonds_teen_patti(winner, winnerUsers, id)
-    except Exception as err:
-        raise HTTPException(status_code=500, detail=str(err))
+#                 else:
+#                     luck = ['A', 'B', 'C']
+#                     winner = random.choice(luck)
+#                     total_winning = 0
+#                     total_bidding = int(doc['seat']['A_total_amount'] )+int( doc['seat']['B_total_amount']) + int(doc['seat']['C_total_amount'])
+#                     if winner == 'A':
+#                         total_winning = int(doc['seat']['A_total_amount']) * 3
+#                     elif winner == 'B':
+#                         total_winning = int(doc['seat']['B_total_amount']) * 3
+#                     else:
+#                         total_winning = int(doc['seat']['C_total_amount'] ) * 3
+#                     rc=total_bidding-total_winning
+#                     client.set("teenPattiRC",int(rc))
+#                     client.set("teenPattiCounter", 1)
+#                     winnerUsers=[]
+#                     for ele in doc["users"]:
+#                         if ele["seat"] == winner:
+#                             winnerUsers.append(ele)
+#                     if len(winnerUsers)==0:
+#                         return teen_patti_boat(winner,id)
+#                     else:
+#                         return credit_diamonds_teen_patti(winner, winnerUsers, id)
+#     except Exception as err:
+#         raise HTTPException(status_code=500, detail=str(err))
 
 @router.get("/resulthistory")
 async def result_history(): 
